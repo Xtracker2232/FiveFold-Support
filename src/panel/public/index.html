@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fivefold Panel</title>
+<style>
+  :root {
+    --bg: #0f0f17; --card: #1a1a26; --input: #11111a; --border: #2a2a3a;
+    --text: #e8e8f0; --muted: #8a8aa0; --accent: #7c5cff; --ok: #4ade80; --err: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+  header img { width: 44px; height: 44px; border-radius: 50%; }
+  header h1 { font-size: 20px; margin: 0; }
+  header small { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 16px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  input, select, textarea {
+    width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row input[type=color] { width: 52px; padding: 2px; height: 40px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-top: 14px; color: var(--text); font-size: 14px; cursor: pointer; }
+  .check input { width: auto; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 12px 18px;
+    font: inherit; font-weight: 600; cursor: pointer; width: 100%; margin-top: 18px;
+  }
+  button:disabled { opacity: .5; cursor: wait; }
+  #embedFields { border-left: 3px solid var(--accent); padding-left: 14px; margin-top: 6px; }
+  .hidden { display: none !important; }
+  /* Discord-like preview */
+  .preview { background: #313338; border-radius: 10px; padding: 16px; display: flex; gap: 14px; }
+  .preview .avatar { width: 40px; height: 40px; border-radius: 50%; flex: none; background: var(--accent); }
+  .preview .name { font-weight: 600; } .preview .tag { background: #5865f2; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
+  .preview .content { white-space: pre-wrap; word-break: break-word; margin-top: 4px; color: #dbdee1; }
+  .pembed { margin-top: 8px; background: #2b2d31; border-left: 4px solid var(--accent); border-radius: 4px; padding: 12px 16px; max-width: 430px; }
+  .pembed .t { font-weight: 700; margin-bottom: 6px; } .pembed .d { white-space: pre-wrap; color: #dbdee1; font-size: 14px; }
+  .pembed img { max-width: 100%; border-radius: 4px; margin-top: 10px; } .pembed .f { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 8px; font-weight: 600; }
+  .toast.ok { background: var(--ok); color: #062; } .toast.err { background: var(--err); color: #fff; }
+  .login { max-width: 360px; margin: 15vh auto; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+  <div id="login" class="wrap login card">
+    <h2>Fivefold Studio · Bot Panel</h2>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" />
+    <button id="loginBtn">Log in</button>
+  </div>
+
+  <div id="app" class="wrap hidden">
+    <header>
+      <img id="guildIcon" alt="" />
+      <div><h1 id="guildName">Fivefold Studio</h1><small>Send messages as the bot</small></div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Message</h2>
+        <label for="channel">Channel</label>
+        <select id="channel"></select>
+
+        <label for="content">Text</label>
+        <textarea id="content" placeholder="Hello everyone! 👋 (supports **markdown**, @everyone, <@&roleId>)"></textarea>
+
+        <label class="check"><input type="checkbox" id="useEmbed" /> Add an embed</label>
+        <div id="embedFields" class="hidden">
+          <label for="eTitle">Embed title</label>
+          <input id="eTitle" maxlength="256" />
+          <label for="eDesc">Embed description</label>
+          <textarea id="eDesc" maxlength="4096"></textarea>
+          <label for="eColor">Color</label>
+          <div class="row"><input type="color" id="eColor" value="#7c5cff" /><input id="eColorHex" value="#7c5cff" /></div>
+          <label for="eImage">Image URL</label>
+          <input id="eImage" placeholder="https://..." />
+          <label for="eFooter">Footer</label>
+          <input id="eFooter" maxlength="2048" />
+          <label class="check"><input type="checkbox" id="eTime" /> Show timestamp</label>
+        </div>
+
+        <button id="sendBtn">Send message</button>
+      </div>
+
+      <div class="card">
+        <h2>Preview</h2>
+        <div class="preview">
+          <img class="avatar" id="botAvatar" alt="" />
+          <div style="min-width:0;flex:1">
+            <span class="name" id="botName">Bot</span><span class="tag">APP</span>
+            <div class="content" id="pContent"></div>
+            <div class="pembed hidden" id="pEmbed">
+              <div class="t" id="pTitle"></div><div class="d" id="pDesc"></div>
+              <img id="pImage" class="hidden" alt="" /><div class="f" id="pFooter"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let password = sessionStorage.getItem('pw') || '';
+
+  function toast(text, type = 'ok') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = text;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
+  }
+
+  async function api(path, body) {
+    const res = await fetch(path, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'Content-Type': 'application/json', 'x-panel-password': password },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+    return data;
+  }
+
+  async function load() {
+    try {
+      const data = await api('/api/channels');
+      sessionStorage.setItem('pw', password);
+      $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+      $('guildName').textContent = data.guild.name;
+      if (data.guild.icon) $('guildIcon').src = data.guild.icon; else $('guildIcon').classList.add('hidden');
+      $('botName').textContent = data.bot.name; $('botAvatar').src = data.bot.avatar;
+
+      const select = $('channel'); select.innerHTML = '';
+      const groups = {};
+      for (const c of data.channels) {
+        if (!groups[c.category]) {
+          groups[c.category] = document.createElement('optgroup');
+          groups[c.category].label = c.category; select.appendChild(groups[c.category]);
+        }
+        const opt = new Option('# ' + c.name, c.id); groups[c.category].appendChild(opt);
+      }
+      const last = localStorage.getItem('lastChannel');
+      if (last && data.channels.some((c) => c.id === last)) select.value = last;
+    } catch (e) {
+      sessionStorage.removeItem('pw');
+      if (password) toast(e.message, 'err');
+    }
+  }
+
+  function preview() {
+    $('pContent').textContent = $('content').value;
+    const on = $('useEmbed').checked;
+    $('embedFields').classList.toggle('hidden', !on);
+    $('pEmbed').classList.toggle('hidden', !on);
+    $('pEmbed').style.borderLeftColor = $('eColor').value;
+    $('pTitle').textContent = $('eTitle').value;
+    $('pDesc').textContent = $('eDesc').value;
+    const img = $('eImage').value.trim();
+    $('pImage').classList.toggle('hidden', !img.startsWith('http'));
+    if (img.startsWith('http')) $('pImage').src = img;
+    $('pFooter').textContent = $('eFooter').value + ($('eTime').checked ? ($('eFooter').value ? ' • ' : '') + 'Today' : '');
+  }
+
+  document.querySelectorAll('input, textarea').forEach((el) => el.addEventListener('input', preview));
+  $('useEmbed').addEventListener('change', preview); $('eTime').addEventListener('change', preview);
+  $('eColor').addEventListener('input', () => { $('eColorHex').value = $('eColor').value; preview(); });
+  $('eColorHex').addEventListener('input', () => {
+    if (/^#[0-9a-f]{6}$/i.test($('eColorHex').value)) { $('eColor').value = $('eColorHex').value; preview(); }
+  });
+  $('channel').addEventListener('change', () => localStorage.setItem('lastChannel', $('channel').value));
+
+  $('loginBtn').onclick = () => { password = $('pw').value; load(); };
+  $('pw').addEventListener('keydown', (e) => e.key === 'Enter' && $('loginBtn').click());
+
+  $('sendBtn').onclick = async () => {
+    const btn = $('sendBtn'); btn.disabled = true;
+    try {
+      const body = { channelId: $('channel').value, content: $('content').value };
+      if ($('useEmbed').checked) {
+        body.embed = {
+          title: $('eTitle').value, description: $('eDesc').value, color: $('eColor').value,
+          image: $('eImage').value.trim(), footer: $('eFooter').value, timestamp: $('eTime').checked,
+        };
+      }
+      await api('/api/send', body);
+      toast('Message sent! ✅');
+      $('content').value = ''; preview();
+    } catch (e) {
+      toast(e.message, 'err');
+      if (e.status === 401) location.reload();
+    } finally { btn.disabled = false; }
+  };
+
+  preview();
+  if (password) load();
+</script>
+</body>
+</html>

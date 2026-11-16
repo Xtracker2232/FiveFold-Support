@@ -49,6 +49,7 @@ Par défaut le panel n'est accessible que depuis ton PC. Pour y accéder ailleur
 | `/clear` | Staff | Supprime 1 à 100 messages |
 | `/announce` | Admin | Annonce en embed dans `ANNOUNCE_CHANNEL_ID` (ping @everyone et bouton "Play now" optionnels) |
 | `/ticket-panel` | Admin | Menu de tickets par catégorie (bug, report, partenariat, autre), avec Claim, Close et transcript envoyé dans les logs |
+| `/add` `/delete` | Staff ou créateur du ticket | Ajoute ou retire quelqu'un d'un ticket (dans le salon du ticket) |
 | `/suggest` | Tout le monde | Suggestion avec votes ✅ ❌, fil de discussion, et boutons Approve/Deny pour le staff |
 | `/roblox` | Tout le monde | Profil Roblox (avatar, amis, followers, date de création) |
 | `/help` `/ping` | Tout le monde | Liste des commandes cliquables, latence |

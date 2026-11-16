@@ -10,7 +10,7 @@ const {
   AttachmentBuilder,
   OverwriteType,
 } = require('discord.js');
-const { errorEmbed, isStaff, getTextChannel } = require('../utils');
+const { errorEmbed, successEmbed, isStaff, getTextChannel } = require('../utils');
 const config = require('../config');
 
 const TYPES = {
@@ -78,7 +78,61 @@ const commands = [
       await i.reply({ content: 'Ticket panel posted.', ephemeral: true });
     },
   },
+  {
+    data: new SlashCommandBuilder()
+      .setName('add')
+      .setDescription('Add someone to this ticket')
+      .addUserOption((o) => o.setName('user').setDescription('Member to add').setRequired(true)),
+    async execute(i) {
+      const info = await checkTicketAccess(i);
+      if (!info) return;
+      const member = i.options.getMember('user');
+      if (!member) return i.reply({ embeds: [errorEmbed('This user is not on the server.')], ephemeral: true });
+      await i.channel.permissionOverwrites.edit(
+        member.id,
+        { ViewChannel: true, SendMessages: true, AttachFiles: true, ReadMessageHistory: true },
+        { type: OverwriteType.Member },
+      );
+      await i.reply({ embeds: [successEmbed(`${member} has been added to the ticket by ${i.user}.`)] });
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName('delete')
+      .setDescription('Remove someone from this ticket')
+      .addUserOption((o) => o.setName('user').setDescription('Member to remove').setRequired(true)),
+    async execute(i) {
+      const info = await checkTicketAccess(i);
+      if (!info) return;
+      const user = i.options.getUser('user');
+      if (user.id === info.ownerId) {
+        return i.reply({ embeds: [errorEmbed('You cannot remove the ticket owner. Close the ticket instead.')], ephemeral: true });
+      }
+      if (user.id === i.client.user.id) {
+        return i.reply({ embeds: [errorEmbed('You cannot remove the bot from the ticket.')], ephemeral: true });
+      }
+      if (!i.channel.permissionOverwrites.cache.has(user.id)) {
+        return i.reply({ embeds: [errorEmbed(`${user} is not in this ticket.`)], ephemeral: true });
+      }
+      await i.channel.permissionOverwrites.delete(user.id);
+      await i.reply({ embeds: [successEmbed(`${user} has been removed from the ticket by ${i.user}.`)] });
+    },
+  },
 ];
+
+// /add and /delete: only inside a ticket, by staff or the ticket owner
+async function checkTicketAccess(i) {
+  const info = ticketInfo(i.channel);
+  if (!info) {
+    await i.reply({ embeds: [errorEmbed('This command only works inside a ticket.')], ephemeral: true });
+    return null;
+  }
+  if (i.user.id !== info.ownerId && !isStaff(i.member)) {
+    await i.reply({ embeds: [errorEmbed('Only staff or the ticket owner can do this.')], ephemeral: true });
+    return null;
+  }
+  return info;
+}
 
 const components = {
   async ticket_type(i) {

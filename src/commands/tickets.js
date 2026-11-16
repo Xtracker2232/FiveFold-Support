@@ -8,6 +8,7 @@ const {
   StringSelectMenuBuilder,
   ChannelType,
   AttachmentBuilder,
+  OverwriteType,
 } = require('discord.js');
 const { errorEmbed, isStaff, getTextChannel } = require('../utils');
 const config = require('../config');
@@ -89,9 +90,10 @@ const components = {
     await i.deferReply({ ephemeral: true });
 
     const overwrites = [
-      { id: i.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+      { id: i.guild.roles.everyone.id, type: OverwriteType.Role, deny: [PermissionFlagsBits.ViewChannel] },
       {
         id: i.user.id,
+        type: OverwriteType.Member,
         allow: [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
@@ -101,12 +103,18 @@ const components = {
       },
       {
         id: i.client.user.id,
+        type: OverwriteType.Member,
         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.SendMessages],
       },
     ];
-    if (config.staffRoleId) {
+    const staffRole = config.staffRoleId ? i.guild.roles.cache.get(config.staffRoleId.trim()) : null;
+    if (config.staffRoleId && !staffRole) {
+      console.warn(`⚠️ STAFF_ROLE_ID "${config.staffRoleId}" is not a role of this server, staff won't see tickets`);
+    }
+    if (staffRole) {
       overwrites.push({
-        id: config.staffRoleId,
+        id: staffRole.id,
+        type: OverwriteType.Role,
         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
       });
     }
@@ -152,7 +160,7 @@ const components = {
       )
       .setTimestamp();
     await channel.send({
-      content: `${i.user}${config.staffRoleId ? ` <@&${config.staffRoleId}>` : ''}`,
+      content: `${i.user}${staffRole ? ` ${staffRole}` : ''}`,
       embeds: [embed],
       components: [ticketButtons()],
     });

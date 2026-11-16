@@ -40,6 +40,12 @@ Choisis le salon, écris le message (texte et/ou embed avec titre, couleur, imag
 Par défaut le panel n'est accessible que depuis ton PC. Pour y accéder ailleurs, mets `PANEL_HOST=0.0.0.0`
 — mais alors utilise un mot de passe long, et idéalement passe par HTTPS (ex. Cloudflare Tunnel).
 
+### Règlement avec bouton "Accept"
+
+Dans le panel, onglet **Rules** : *Load rules template*, choisis le rôle à donner (ex. `Member`), le salon `#rules`, puis **Send**.
+Quand un membre clique sur **Accept the rules**, il reçoit le rôle.
+Le rôle du bot doit être **au-dessus** de ce rôle dans Paramètres du serveur → Rôles.
+
 ## Commandes
 
 | Commande | Qui | Description |

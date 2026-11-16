@@ -143,6 +143,8 @@
   .e-image { grid-column: 1 / -1; max-width: 100%; border-radius: 4px; margin-top: 12px; }
   .e-footer { grid-column: 1 / -1; font-size: 12px; color: #b5bac1; margin-top: 8px; }
   .dc-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .dc-btn.green { background: #248046; }
+  .hint { color: var(--muted); margin: 16px 0 12px; line-height: 1.5; }
   .dc-btn { background: #4e5058; color: #fff; border-radius: 4px; padding: 6px 14px; font-size: 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
 
   /* History */
@@ -192,6 +194,7 @@
           <button class="tab active" data-tab="message">Message</button>
           <button class="tab" data-tab="embed">Embed <span class="badge hidden" id="embedBadge">ON</span></button>
           <button class="tab" data-tab="buttons">Buttons <span class="badge hidden" id="btnBadge">0</span></button>
+          <button class="tab" data-tab="rules">Rules <span class="badge hidden" id="rulesBadge">ON</span></button>
         </div>
 
         <!-- Message tab -->
@@ -243,6 +246,19 @@
           <div id="buttonList"></div>
           <button class="btn ghost small" id="addButton" style="margin-top:10px">+ Add button</button>
         </div>
+
+        <!-- Rules tab -->
+        <div data-panel="rules" class="hidden">
+          <p class="hint">Post your server rules with an <b>Accept</b> button. Everyone who clicks it gets the role you choose (e.g. <b>Member</b>).</p>
+          <button class="btn ghost small" id="rulesTemplate">📜 Load rules template</button>
+          <label class="switch"><input type="checkbox" data-bind="verify.enabled" /><span class="track"></span>Add an "Accept the rules" button</label>
+          <div id="verifyFields">
+            <label for="verifyRole">Role given on accept</label>
+            <select id="verifyRole" data-bind="verify.roleId"></select>
+            <label for="verifyLabel">Button label</label>
+            <input id="verifyLabel" data-bind="verify.label" maxlength="80" />
+          </div>
+        </div>
       </div>
 
       <div class="sendbar">
@@ -291,6 +307,7 @@ let info = null;
 
 const blank = () => ({
   content: '', useEmbed: false, buttons: [],
+  verify: { enabled: false, roleId: '', label: '✅ Accept the rules' },
   embed: { color: '#7c5cff', author: '', authorIcon: '', title: '', url: '', description: '', fields: [], thumbnail: '', image: '', footer: '', timestamp: false },
 });
 let state = Object.assign(blank(), store.get('draft') || {});
@@ -380,9 +397,11 @@ async function load() {
 
     const roleIns = $('#roleInsert'); roleIns.innerHTML = '<option value="">@ Mention a role…</option>';
     for (const r of info.roles) roleIns.appendChild(new Option('@' + r.name, r.id));
+    const vRole = $('#verifyRole'); vRole.innerHTML = '<option value="">Choose a role…</option>';
+    for (const r of info.roles) vRole.appendChild(new Option('@' + r.name, r.id));
 
     renderHistory(info.history);
-    render();
+    syncInputs();
   } catch (e) {
     try { sessionStorage.removeItem('pw'); } catch {}
     $('#login').classList.remove('hidden'); $('#app').classList.add('hidden');
@@ -440,7 +459,11 @@ function embedHtml(e) {
 function render() {
   $('#pContent').innerHTML = md(state.content);
   $('#pEmbed').innerHTML = state.useEmbed ? embedHtml(state.embed) : '';
-  $('#pButtons').innerHTML = state.buttons.filter((b) => b.label.trim()).map((b) => `<span class="dc-btn">${esc(b.label)} <span style="opacity:.7">↗</span></span>`).join('');
+  $('#pButtons').innerHTML =
+    (state.verify.enabled ? `<span class="dc-btn green">${esc(state.verify.label || '✅ Accept the rules')}</span>` : '') +
+    state.buttons.filter((b) => b.label.trim()).map((b) => `<span class="dc-btn">${esc(b.label)} <span style="opacity:.7">↗</span></span>`).join('');
+  $('#verifyFields').classList.toggle('hidden', !state.verify.enabled);
+  $('#rulesBadge').classList.toggle('hidden', !state.verify.enabled);
   $('#embedFields').classList.toggle('hidden', !state.useEmbed);
   $('#embedBadge').classList.toggle('hidden', !state.useEmbed);
   $('#btnBadge').textContent = state.buttons.length; $('#btnBadge').classList.toggle('hidden', !state.buttons.length);
@@ -502,6 +525,30 @@ $('#channelInsert').onchange = (e) => { if (e.target.value) insertText(`<#${e.ta
 $('#channel').onchange = () => { store.set('lastChannel', $('#channel').value); render(); };
 $('#addField').onclick = () => { state.embed.fields.push({ name: '', value: '', inline: true }); renderLists(); render(); };
 $('#addButton').onclick = () => { state.buttons.push({ label: '', url: '' }); renderLists(); render(); };
+const RULES = [
+  '**1. Be respectful** — No harassment, hate speech or discrimination.',
+  '**2. No spam** — No flooding, excessive caps or mention spam.',
+  '**3. No advertising** — No self-promo or server invites without staff permission.',
+  '**4. Keep it safe** — No NSFW, gore or shocking content.',
+  '**5. No scams or exploits** — Never share cheats, exploits or suspicious links.',
+  '**6. Use the right channels** — Keep each topic in its channel.',
+  '**7. Follow Discord & Roblox rules** — Discord ToS and Roblox Community Standards apply here.',
+  '**8. Listen to the staff** — Staff decisions are final. Questions? Open a ticket.',
+].join('\n\n');
+
+$('#rulesTemplate').onclick = () => {
+  const hasEmbed = state.useEmbed && (state.embed.title || state.embed.description);
+  if (hasEmbed && !confirm('Replace the current embed with the rules template?')) return;
+  state.useEmbed = true;
+  Object.assign(state.embed, {
+    color: '#7c5cff', author: info?.guild.name || 'Fivefold Studio', authorIcon: info?.guild.icon || '',
+    title: '📜 Server Rules', url: '', description: RULES, fields: [], thumbnail: '', image: '',
+    footer: 'Click the button below to accept the rules and unlock the server.', timestamp: false,
+  });
+  state.verify.enabled = true;
+  syncInputs();
+  toast('Rules template loaded — choose the role, then a channel');
+};
 $('#resetBtn').onclick = () => { if (confirm('Clear the whole message?')) { state = blank(); syncInputs(); } };
 $('#logoutBtn').onclick = () => { try { sessionStorage.removeItem('pw'); } catch {} location.reload(); };
 $('#loginBtn').onclick = () => { password = $('#pw').value; load(); };
@@ -512,9 +559,10 @@ $('#sendBtn').onclick = send;
 async function send() {
   const channelId = $('#channel').value;
   if (!channelId) return toast('Choose a channel first', 'err');
+  if (state.verify.enabled && !state.verify.roleId) return toast('Choose the role for the rules button (Rules tab)', 'err');
   const btn = $('#sendBtn'); btn.disabled = true;
   try {
-    const body = { channelId, content: state.content, buttons: state.buttons };
+    const body = { channelId, content: state.content, buttons: state.buttons, verify: state.verify };
     if (state.useEmbed) body.embed = state.embed;
     const res = await api('/api/send', body);
     toast(`Message sent! ✅ <a href="${esc(res.url)}" target="_blank" rel="noopener">Open</a>`);

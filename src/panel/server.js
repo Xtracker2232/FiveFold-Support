@@ -60,12 +60,27 @@ function buildEmbed(e) {
   return embed;
 }
 
-function buildButtons(list) {
+function buildButtons(list, extra) {
   const buttons = (Array.isArray(list) ? list : [])
     .filter((b) => str(b.label, 80) && isUrl(b.url))
-    .slice(0, 5)
     .map((b) => new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(str(b.label, 80)).setURL(b.url.trim()));
-  return buttons.length ? [new ActionRowBuilder().addComponents(buttons)] : [];
+  if (extra) buttons.unshift(extra);
+  return buttons.length ? [new ActionRowBuilder().addComponents(buttons.slice(0, 5))] : [];
+}
+
+// "Accept the rules" button: gives the chosen role when clicked
+function buildVerifyButton(guild, verify) {
+  if (!verify?.enabled) return { button: null };
+  const role = guild.roles.cache.get(String(verify.roleId));
+  if (!role || role.managed || role.id === guild.id) return { error: 'Pick a valid role for the "Accept the rules" button' };
+  if (role.position >= guild.members.me.roles.highest.position) {
+    return { error: `Move the bot's role above "${role.name}" in Server Settings → Roles, or it can't give it` };
+  }
+  const button = new ButtonBuilder()
+    .setCustomId(`rules_accept:${role.id}`)
+    .setStyle(ButtonStyle.Success)
+    .setLabel(str(verify.label, 80) || '✅ Accept the rules');
+  return { button };
 }
 
 module.exports = function startPanel(client) {
@@ -121,16 +136,19 @@ module.exports = function startPanel(client) {
   });
 
   app.post('/api/send', async (req, res) => {
-    const { channelId, content, embed, buttons } = req.body ?? {};
-    const channel = getGuild()?.channels.cache.get(channelId);
+    const { channelId, content, embed, buttons, verify } = req.body ?? {};
+    const guild = getGuild();
+    const channel = guild?.channels.cache.get(channelId);
     if (!channel?.isTextBased()) return res.status(400).json({ error: 'Pick a valid channel' });
+    const { button: verifyButton, error: verifyError } = buildVerifyButton(guild, verify);
+    if (verifyError) return res.status(400).json({ error: verifyError });
 
     const payload = { allowedMentions: { parse: ['users', 'roles', 'everyone'] } };
     const text = str(content, 2000);
     if (text) payload.content = text;
     const builtEmbed = buildEmbed(embed);
     if (builtEmbed) payload.embeds = [builtEmbed];
-    payload.components = buildButtons(buttons);
+    payload.components = buildButtons(buttons, verifyButton);
 
     if (!payload.content && !payload.embeds) return res.status(400).json({ error: 'The message is empty' });
 

@@ -71,7 +71,7 @@ client.on(Events.InteractionCreate, async (i) => {
     if (i.isChatInputCommand()) {
       await commandMap.get(i.commandName)?.execute(i);
     } else if (i.isButton() || i.isStringSelectMenu()) {
-      await components[i.customId]?.(i);
+      await components[i.customId.split(':')[0]]?.(i);
     }
   } catch (err) {
     console.error(err);

@@ -1,13 +1,24 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const config = require('./config');
+
+async function getTextChannel(guild, id) {
+  if (!id) return null;
+  const channel = await guild.channels.fetch(id).catch(() => null);
+  return channel?.isTextBased() ? channel : null;
+}
+
+function isStaff(member) {
+  if (!member) return false;
+  if (member.permissions.has(PermissionFlagsBits.ManageGuild)) return true;
+  return Boolean(config.staffRoleId && member.roles.cache.has(config.staffRoleId));
+}
 
 // --- Mod log ---------------------------------------------------------------
 async function modLog(guild, { action, target, moderator, reason, color = 0xff5c5c }) {
-  if (!config.modLogChannelId) return;
-  const channel = await guild.channels.fetch(config.modLogChannelId).catch(() => null);
-  if (!channel?.isTextBased()) return;
+  const channel = await getTextChannel(guild, config.modLogChannelId);
+  if (!channel) return;
   const embed = new EmbedBuilder()
     .setColor(color)
     .setTitle(`🔨 ${action}`)
@@ -21,8 +32,7 @@ async function modLog(guild, { action, target, moderator, reason, color = 0xff5c
 }
 
 // --- Tiny JSON store (warnings) ---------------------------------------------
-const dataDir = config.dataDir;
-const warnsFile = path.join(dataDir, 'warns.json');
+const warnsFile = path.join(config.dataDir, 'warns.json');
 
 function readWarns() {
   try {
@@ -32,15 +42,11 @@ function readWarns() {
   }
 }
 
-function writeWarns(data) {
-  fs.mkdirSync(dataDir, { recursive: true });
-  fs.writeFileSync(warnsFile, JSON.stringify(data, null, 2));
-}
-
 function addWarn(userId, warn) {
   const data = readWarns();
   (data[userId] ??= []).push(warn);
-  writeWarns(data);
+  fs.mkdirSync(config.dataDir, { recursive: true });
+  fs.writeFileSync(warnsFile, JSON.stringify(data, null, 2));
   return data[userId].length;
 }
 
@@ -48,12 +54,7 @@ function getWarns(userId) {
   return readWarns()[userId] ?? [];
 }
 
-function errorEmbed(text) {
-  return new EmbedBuilder().setColor(0xff5c5c).setDescription(`❌ ${text}`);
-}
+const errorEmbed = (text) => new EmbedBuilder().setColor(0xff5c5c).setDescription(`❌ ${text}`);
+const successEmbed = (text) => new EmbedBuilder().setColor(0x4ade80).setDescription(`✅ ${text}`);
 
-function successEmbed(text) {
-  return new EmbedBuilder().setColor(0x4ade80).setDescription(`✅ ${text}`);
-}
-
-module.exports = { modLog, addWarn, getWarns, errorEmbed, successEmbed };
+module.exports = { getTextChannel, isStaff, modLog, addWarn, getWarns, errorEmbed, successEmbed };

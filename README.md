@@ -47,9 +47,11 @@ Par défaut le panel n'est accessible que depuis ton PC. Pour y accéder ailleur
 | `/ban` `/kick` `/timeout` | Staff | Sanctions, loggées dans `MOD_LOG_CHANNEL_ID` |
 | `/warn` `/warnings` | Staff | Avertissements (stockés dans `data/warns.json`) |
 | `/clear` | Staff | Supprime 1 à 100 messages |
-| `/announce` | Admin | Annonce en embed dans `ANNOUNCE_CHANNEL_ID` (ping @everyone optionnel) |
-| `/ticket-panel` | Admin | Poste le bouton "Open a ticket" dans le salon courant |
-| `/suggest` | Tout le monde | Suggestion avec votes ✅ ❌ et fil de discussion |
-| `/roblox` | Tout le monde | Infos d'un joueur Roblox |
+| `/announce` | Admin | Annonce en embed dans `ANNOUNCE_CHANNEL_ID` (ping @everyone et bouton "Play now" optionnels) |
+| `/ticket-panel` | Admin | Menu de tickets par catégorie (bug, report, partenariat, autre), avec Claim, Close et transcript envoyé dans les logs |
+| `/suggest` | Tout le monde | Suggestion avec votes ✅ ❌, fil de discussion, et boutons Approve/Deny pour le staff |
+| `/roblox` | Tout le monde | Profil Roblox (avatar, amis, followers, date de création) |
+| `/help` `/ping` | Tout le monde | Liste des commandes cliquables, latence |
+| `/userinfo` `/serverinfo` | Tout le monde | Infos d'un membre (avec nb de warns) ou du serveur |
 
 Les permissions des commandes peuvent être ajustées dans Paramètres du serveur → Intégrations → le bot.

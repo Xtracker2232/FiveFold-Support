@@ -4,205 +4,529 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Fivefold Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0f0f17; --card: #1a1a26; --input: #11111a; --border: #2a2a3a;
-    --text: #e8e8f0; --muted: #8a8aa0; --accent: #7c5cff; --ok: #4ade80; --err: #ff5c5c;
+    --bg: #0b0b12; --bg2: #11111b; --card: #161622; --card2: #1c1c2b; --input: #0f0f18;
+    --border: #262638; --border2: #33334a; --text: #ececf4; --muted: #8b8ba3; --dim: #5d5d75;
+    --accent: #7c5cff; --accent2: #a48bff; --ok: #3ddc84; --err: #ff5c6c; --warn: #ffc44d;
+    --dc-bg: #313338; --dc-embed: #2b2d31; --dc-text: #dbdee1;
+    --radius: 14px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text); }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
-  header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  header img { width: 44px; height: 44px; border-radius: 50%; }
-  header h1 { font-size: 20px; margin: 0; }
-  header small { color: var(--muted); }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 16px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  html, body { margin: 0; }
+  body {
+    font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; background: var(--bg); color: var(--text);
+    background-image: radial-gradient(1200px 500px at 10% -10%, #7c5cff22, transparent 60%),
+                      radial-gradient(900px 400px at 110% 10%, #3ddc8412, transparent 60%);
+    background-attachment: fixed; min-height: 100vh; font-size: 14px;
+  }
+  .hidden { display: none !important; }
+  button { font: inherit; cursor: pointer; }
   input, select, textarea {
     width: 100%; background: var(--input); color: var(--text); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px;
+    border-radius: 10px; padding: 10px 12px; font: inherit; transition: border-color .15s, box-shadow .15s;
   }
-  textarea { min-height: 110px; resize: vertical; }
-  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
-  .row { display: flex; gap: 10px; align-items: center; }
-  .row input[type=color] { width: 52px; padding: 2px; height: 40px; }
-  .check { display: flex; gap: 8px; align-items: center; margin-top: 14px; color: var(--text); font-size: 14px; cursor: pointer; }
-  .check input { width: auto; }
-  button {
-    background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 12px 18px;
-    font: inherit; font-weight: 600; cursor: pointer; width: 100%; margin-top: 18px;
+  textarea { resize: vertical; min-height: 90px; line-height: 1.45; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #7c5cff33; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .counter { float: right; font-weight: 500; color: var(--dim); text-transform: none; letter-spacing: 0; }
+
+  /* Login */
+  .login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .login-card { width: 100%; max-width: 380px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; box-shadow: 0 30px 80px #0008; }
+  .logo { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 26px; font-weight: 800;
+          background: linear-gradient(135deg, var(--accent), #4f8bff); margin-bottom: 18px; box-shadow: 0 10px 30px #7c5cff55; }
+  .login-card h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-card p { margin: 0 0 8px; color: var(--muted); }
+
+  .btn { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; color: #fff; background: var(--accent);
+         transition: transform .08s, background .15s, opacity .15s; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+  .btn:hover { background: #6b49ff; } .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .btn.ghost { background: transparent; border: 1px solid var(--border2); color: var(--text); }
+  .btn.ghost:hover { background: var(--card2); }
+  .btn.small { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+  .btn.block { width: 100%; margin-top: 18px; }
+
+  /* Top bar */
+  .topbar { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(12px); background: #0b0b12cc; border-bottom: 1px solid var(--border); }
+  .topbar-inner { max-width: 1320px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 14px; }
+  .guild-icon { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; background: var(--card2); }
+  .guild-name { font-weight: 700; font-size: 16px; }
+  .guild-sub { color: var(--muted); font-size: 12px; }
+  .spacer { flex: 1; }
+  .status { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); padding: 6px 12px 6px 6px; border-radius: 999px; }
+  .status img { width: 28px; height: 28px; border-radius: 50%; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+
+  /* Layout */
+  main { max-width: 1320px; margin: 0 auto; padding: 24px 20px 60px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 980px) { main { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 600px) {
+    main { padding: 16px 16px 48px; gap: 16px; }
+    .topbar-inner { padding: 10px 16px; gap: 10px; }
+    #botStatus, .guild-sub, .kbd { display: none; }
+    .status { padding: 6px; }
   }
-  button:disabled { opacity: .5; cursor: wait; }
-  #embedFields { border-left: 3px solid var(--accent); padding-left: 14px; margin-top: 6px; }
-  .hidden { display: none !important; }
-  /* Discord-like preview */
-  .preview { background: #313338; border-radius: 10px; padding: 16px; display: flex; gap: 14px; }
-  .preview .avatar { width: 40px; height: 40px; border-radius: 50%; flex: none; background: var(--accent); }
-  .preview .name { font-weight: 600; } .preview .tag { background: #5865f2; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; }
-  .preview .content { white-space: pre-wrap; word-break: break-word; margin-top: 4px; color: #dbdee1; }
-  .pembed { margin-top: 8px; background: #2b2d31; border-left: 4px solid var(--accent); border-radius: 4px; padding: 12px 16px; max-width: 430px; }
-  .pembed .t { font-weight: 700; margin-bottom: 6px; } .pembed .d { white-space: pre-wrap; color: #dbdee1; font-size: 14px; }
-  .pembed img { max-width: 100%; border-radius: 4px; margin-top: 10px; } .pembed .f { font-size: 12px; color: var(--muted); margin-top: 8px; }
-  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 8px; font-weight: 600; }
-  .toast.ok { background: var(--ok); color: #062; } .toast.err { background: var(--err); color: #fff; }
-  .login { max-width: 360px; margin: 15vh auto; }
-  a { color: var(--accent); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .card-head { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .card-head h2 { margin: 0; font-size: 14px; font-weight: 700; }
+  .card-body { padding: 4px 18px 18px; }
+  .side { display: grid; gap: 22px; position: sticky; top: 86px; }
+  @media (max-width: 980px) { .side { position: static; } }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--input); padding: 4px; border-radius: 10px; margin-top: 14px; }
+  .tab { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-weight: 600; }
+  .tab.active { background: var(--card2); color: var(--text); box-shadow: 0 1px 0 #ffffff10 inset; }
+  .tab .badge { background: var(--accent); color: #fff; border-radius: 999px; font-size: 10px; padding: 1px 6px; margin-left: 4px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { border: 1px solid var(--border2); background: var(--card2); color: var(--text); border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+  .chip:hover { border-color: var(--accent); }
+  .chip select { all: unset; cursor: pointer; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+  .switch { display: flex; align-items: center; gap: 10px; margin-top: 16px; cursor: pointer; user-select: none; font-weight: 600; }
+  .switch input { display: none; }
+  .switch .track { width: 38px; height: 22px; border-radius: 999px; background: var(--border2); position: relative; transition: background .15s; flex: none; }
+  .switch .track::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(16px); }
+
+  .swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .swatch { width: 26px; height: 26px; border-radius: 8px; border: 2px solid transparent; }
+  .swatch.on { border-color: #fff; }
+  .swatches input[type=color] { width: 34px; height: 30px; padding: 2px; }
+  .swatches input.hex { width: 100px; }
+
+  .list-item { background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .list-item .head { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .list-item input, .list-item textarea { margin-top: 8px; }
+  .x { margin-left: auto; background: transparent; border: 0; color: var(--dim); font-size: 16px; padding: 0 4px; }
+  .x:hover { color: var(--err); }
+  .empty { color: var(--dim); text-align: center; padding: 16px; border: 1px dashed var(--border2); border-radius: 10px; margin-top: 12px; }
+
+  .sendbar { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); background: var(--card2); border-radius: 0 0 var(--radius) var(--radius); align-items: center; }
+  .sendbar select { flex: 1; min-width: 0; }
+  .card { min-width: 0; }
+  .kbd { color: var(--dim); font-size: 11px; }
+
+  /* Discord preview */
+  .dc { background: var(--dc-bg); border-radius: 10px; padding: 16px; display: flex; gap: 14px; color: var(--dc-text); font-size: 15px; line-height: 1.375; }
+  .dc .av { width: 40px; height: 40px; border-radius: 50%; flex: none; background: var(--accent); }
+  .dc .msg { min-width: 0; flex: 1; }
+  .dc .name { font-weight: 600; color: #fff; }
+  .dc .apptag { background: #5865f2; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; vertical-align: 2px; }
+  .dc .time { color: #949ba4; font-size: 12px; margin-left: 6px; }
+  .dc .content { white-space: pre-wrap; word-wrap: break-word; }
+  .dc .content:empty { display: none; }
+  .md h1 { font-size: 24px; margin: 6px 0 2px; } .md h2 { font-size: 20px; margin: 6px 0 2px; } .md h3 { font-size: 16px; margin: 6px 0 2px; }
+  .md code { background: #1e1f22; padding: 1px 4px; border-radius: 4px; font-size: 13px; }
+  .md pre { background: #1e1f22; border: 1px solid #1a1b1e; padding: 8px; border-radius: 4px; font-size: 13px; white-space: pre-wrap; margin: 4px 0; }
+  .md blockquote { border-left: 4px solid #4e5058; padding-left: 10px; margin: 2px 0; }
+  .md a { color: #00a8fc; text-decoration: none; }
+  .mention { background: color-mix(in srgb, var(--c, #5865f2) 30%, transparent); color: var(--c, #c9cdfb); border-radius: 3px; padding: 0 2px; font-weight: 500; }
+  .embed { margin-top: 6px; background: var(--dc-embed); border-left: 4px solid var(--accent); border-radius: 4px; padding: 10px 16px 14px 12px; max-width: 520px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 16px; }
+  .embed > * { grid-column: 1; }
+  .embed .thumb { grid-column: 2; grid-row: 1 / 6; width: 80px; height: 80px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
+  .e-author { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #fff; margin-top: 6px; }
+  .e-author img { width: 24px; height: 24px; border-radius: 50%; }
+  .e-title { font-weight: 600; color: #fff; margin-top: 6px; } .e-title a { color: #00a8fc; }
+  .e-desc { font-size: 14px; margin-top: 6px; white-space: pre-wrap; }
+  .e-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; grid-column: 1 / -1; }
+  .e-field { font-size: 14px; min-width: 0; } .e-field.full { grid-column: 1 / -1; }
+  .e-field .fn { font-weight: 600; color: #fff; margin-bottom: 2px; } .e-field .fv { white-space: pre-wrap; }
+  .e-image { grid-column: 1 / -1; max-width: 100%; border-radius: 4px; margin-top: 12px; }
+  .e-footer { grid-column: 1 / -1; font-size: 12px; color: #b5bac1; margin-top: 8px; }
+  .dc-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .dc-btn { background: #4e5058; color: #fff; border-radius: 4px; padding: 6px 14px; font-size: 14px; font-weight: 500; display: inline-flex; gap: 6px; align-items: center; }
+
+  /* History */
+  .hist { display: grid; gap: 8px; }
+  .hist a { display: flex; gap: 10px; align-items: center; text-decoration: none; color: var(--text); background: var(--input); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; transition: border-color .15s; }
+  .hist a:hover { border-color: var(--accent); }
+  .hist .ch { color: var(--accent2); font-weight: 600; flex: none; }
+  .hist .pv { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+  .hist .when { color: var(--dim); font-size: 12px; flex: none; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 12px; font-weight: 600; z-index: 50; box-shadow: 0 10px 30px #0008; animation: pop .2s ease-out; }
+  .toast.ok { background: var(--ok); color: #04351c; } .toast.err { background: var(--err); color: #fff; }
+  .toast a { color: inherit; margin-left: 8px; }
+  @keyframes pop { from { opacity: 0; transform: translate(-50%, 10px); } }
 </style>
 </head>
 <body>
-  <div id="login" class="wrap login card">
-    <h2>Fivefold Studio · Bot Panel</h2>
+
+<!-- Login -->
+<div id="login" class="login">
+  <div class="login-card">
+    <div class="logo">5</div>
+    <h1>Fivefold Panel</h1>
+    <p>Send messages as the bot.</p>
     <label for="pw">Password</label>
-    <input id="pw" type="password" autocomplete="current-password" />
-    <button id="loginBtn">Log in</button>
+    <input id="pw" type="password" autocomplete="current-password" autofocus />
+    <button class="btn block" id="loginBtn">Log in</button>
   </div>
+</div>
 
-  <div id="app" class="wrap hidden">
-    <header>
-      <img id="guildIcon" alt="" />
-      <div><h1 id="guildName">Fivefold Studio</h1><small>Send messages as the bot</small></div>
-    </header>
+<!-- App -->
+<div id="app" class="hidden">
+  <div class="topbar"><div class="topbar-inner">
+    <img class="guild-icon" id="guildIcon" alt="" />
+    <div><div class="guild-name" id="guildName">Server</div><div class="guild-sub" id="guildSub"></div></div>
+    <div class="spacer"></div>
+    <div class="status"><img id="botAvatar" alt="" /><span class="dot"></span><span id="botStatus">Online</span></div>
+    <button class="btn ghost small" id="logoutBtn">Log out</button>
+  </div></div>
 
-    <div class="grid">
-      <div class="card">
-        <h2>Message</h2>
-        <label for="channel">Channel</label>
-        <select id="channel"></select>
-
-        <label for="content">Text</label>
-        <textarea id="content" placeholder="Hello everyone! 👋 (supports **markdown**, @everyone, <@&roleId>)"></textarea>
-
-        <label class="check"><input type="checkbox" id="useEmbed" /> Add an embed</label>
-        <div id="embedFields" class="hidden">
-          <label for="eTitle">Embed title</label>
-          <input id="eTitle" maxlength="256" />
-          <label for="eDesc">Embed description</label>
-          <textarea id="eDesc" maxlength="4096"></textarea>
-          <label for="eColor">Color</label>
-          <div class="row"><input type="color" id="eColor" value="#7c5cff" /><input id="eColorHex" value="#7c5cff" /></div>
-          <label for="eImage">Image URL</label>
-          <input id="eImage" placeholder="https://..." />
-          <label for="eFooter">Footer</label>
-          <input id="eFooter" maxlength="2048" />
-          <label class="check"><input type="checkbox" id="eTime" /> Show timestamp</label>
+  <main>
+    <!-- Composer -->
+    <section class="card">
+      <div class="card-head"><h2>✏️ Composer</h2><div class="spacer"></div><button class="btn ghost small" id="resetBtn">Reset</button></div>
+      <div class="card-body">
+        <div class="tabs">
+          <button class="tab active" data-tab="message">Message</button>
+          <button class="tab" data-tab="embed">Embed <span class="badge hidden" id="embedBadge">ON</span></button>
+          <button class="tab" data-tab="buttons">Buttons <span class="badge hidden" id="btnBadge">0</span></button>
         </div>
 
-        <button id="sendBtn">Send message</button>
+        <!-- Message tab -->
+        <div data-panel="message">
+          <label for="content">Text <span class="counter" id="contentCount">0 / 2000</span></label>
+          <textarea id="content" data-bind="content" maxlength="2000" rows="6" placeholder="Hello everyone! 👋  Supports **bold**, *italic*, # headings, > quotes, [links](https://...)"></textarea>
+          <div class="chips">
+            <button class="chip" data-insert="@everyone">@everyone</button>
+            <button class="chip" data-insert="@here">@here</button>
+            <span class="chip"><select id="roleInsert"><option value="">@ Mention a role…</option></select></span>
+            <span class="chip"><select id="channelInsert"><option value=""># Link a channel…</option></select></span>
+          </div>
+        </div>
+
+        <!-- Embed tab -->
+        <div data-panel="embed" class="hidden">
+          <label class="switch"><input type="checkbox" data-bind="useEmbed" /><span class="track"></span>Add an embed to the message</label>
+          <div id="embedFields">
+            <label>Color</label>
+            <div class="swatches" id="swatches"></div>
+            <div class="row2">
+              <div><label>Author</label><input data-bind="embed.author" maxlength="256" placeholder="Fivefold Studio" /></div>
+              <div><label>Author icon URL</label><input data-bind="embed.authorIcon" placeholder="https://..." /></div>
+            </div>
+            <div class="row2">
+              <div><label>Title</label><input data-bind="embed.title" maxlength="256" placeholder="📢 Big update!" /></div>
+              <div><label>Title link</label><input data-bind="embed.url" placeholder="https://..." /></div>
+            </div>
+            <label>Description <span class="counter" id="descCount">0 / 4096</span></label>
+            <textarea data-bind="embed.description" maxlength="4096" rows="6"></textarea>
+
+            <label>Fields</label>
+            <div id="fieldList"></div>
+            <button class="btn ghost small" id="addField" style="margin-top:10px">+ Add field</button>
+
+            <div class="row2">
+              <div><label>Thumbnail URL</label><input data-bind="embed.thumbnail" placeholder="https://..." /></div>
+              <div><label>Big image URL</label><input data-bind="embed.image" placeholder="https://..." /></div>
+            </div>
+            <label>Footer</label>
+            <input data-bind="embed.footer" maxlength="2048" placeholder="Fivefold Studio" />
+            <label class="switch"><input type="checkbox" data-bind="embed.timestamp" /><span class="track"></span>Show timestamp</label>
+          </div>
+        </div>
+
+        <!-- Buttons tab -->
+        <div data-panel="buttons" class="hidden">
+          <label>Link buttons (max 5)</label>
+          <div id="buttonList"></div>
+          <button class="btn ghost small" id="addButton" style="margin-top:10px">+ Add button</button>
+        </div>
       </div>
 
-      <div class="card">
-        <h2>Preview</h2>
-        <div class="preview">
-          <img class="avatar" id="botAvatar" alt="" />
-          <div style="min-width:0;flex:1">
-            <span class="name" id="botName">Bot</span><span class="tag">APP</span>
-            <div class="content" id="pContent"></div>
-            <div class="pembed hidden" id="pEmbed">
-              <div class="t" id="pTitle"></div><div class="d" id="pDesc"></div>
-              <img id="pImage" class="hidden" alt="" /><div class="f" id="pFooter"></div>
+      <div class="sendbar">
+        <select id="channel"></select>
+        <button class="btn" id="sendBtn">Send <span class="kbd" style="color:#fff9">Ctrl+↵</span></button>
+      </div>
+    </section>
+
+    <!-- Preview + history -->
+    <div class="side">
+      <section class="card">
+        <div class="card-head"><h2>👁️ Preview</h2><div class="spacer"></div><span class="kbd" id="previewChannel"></span></div>
+        <div class="card-body" style="padding-top:18px">
+          <div class="dc">
+            <img class="av" id="pAvatar" alt="" />
+            <div class="msg">
+              <span class="name" id="pName">Bot</span><span class="apptag">APP</span><span class="time">Today</span>
+              <div class="content md" id="pContent"></div>
+              <div id="pEmbed"></div>
+              <div class="dc-buttons" id="pButtons"></div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>🕘 Recently sent</h2></div>
+        <div class="card-body" style="padding-top:14px"><div class="hist" id="history"></div></div>
+      </section>
     </div>
-  </div>
+  </main>
+</div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
-  let password = sessionStorage.getItem('pw') || '';
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const COLORS = ['#7c5cff', '#5865f2', '#3ddc84', '#ffc44d', '#ff8a3d', '#ff5c6c', '#ff6bcb', '#2b2d31'];
 
-  function toast(text, type = 'ok') {
-    const t = document.createElement('div');
-    t.className = 'toast ' + type; t.textContent = text;
-    document.body.appendChild(t); setTimeout(() => t.remove(), 3500);
-  }
+let password = '';
+try { password = sessionStorage.getItem('pw') || ''; } catch {}
+let info = null;
 
-  async function api(path, body) {
-    const res = await fetch(path, {
-      method: body ? 'POST' : 'GET',
-      headers: { 'Content-Type': 'application/json', 'x-panel-password': password },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
-    return data;
-  }
+const blank = () => ({
+  content: '', useEmbed: false, buttons: [],
+  embed: { color: '#7c5cff', author: '', authorIcon: '', title: '', url: '', description: '', fields: [], thumbnail: '', image: '', footer: '', timestamp: false },
+});
+let state = Object.assign(blank(), store.get('draft') || {});
 
-  async function load() {
-    try {
-      const data = await api('/api/channels');
-      sessionStorage.setItem('pw', password);
-      $('login').classList.add('hidden'); $('app').classList.remove('hidden');
-      $('guildName').textContent = data.guild.name;
-      if (data.guild.icon) $('guildIcon').src = data.guild.icon; else $('guildIcon').classList.add('hidden');
-      $('botName').textContent = data.bot.name; $('botAvatar').src = data.bot.avatar;
+/* ---------- helpers ---------- */
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isUrl = (s) => /^https?:\/\/\S+$/i.test(String(s || '').trim());
+const getPath = (o, p) => p.split('.').reduce((a, k) => a?.[k], o);
+const setPath = (o, p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
 
-      const select = $('channel'); select.innerHTML = '';
-      const groups = {};
-      for (const c of data.channels) {
-        if (!groups[c.category]) {
-          groups[c.category] = document.createElement('optgroup');
-          groups[c.category].label = c.category; select.appendChild(groups[c.category]);
-        }
-        const opt = new Option('# ' + c.name, c.id); groups[c.category].appendChild(opt);
-      }
-      const last = localStorage.getItem('lastChannel');
-      if (last && data.channels.some((c) => c.id === last)) select.value = last;
-    } catch (e) {
-      sessionStorage.removeItem('pw');
-      if (password) toast(e.message, 'err');
-    }
-  }
+function toast(html, type = 'ok') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type; t.innerHTML = html;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 4000);
+}
 
-  function preview() {
-    $('pContent').textContent = $('content').value;
-    const on = $('useEmbed').checked;
-    $('embedFields').classList.toggle('hidden', !on);
-    $('pEmbed').classList.toggle('hidden', !on);
-    $('pEmbed').style.borderLeftColor = $('eColor').value;
-    $('pTitle').textContent = $('eTitle').value;
-    $('pDesc').textContent = $('eDesc').value;
-    const img = $('eImage').value.trim();
-    $('pImage').classList.toggle('hidden', !img.startsWith('http'));
-    if (img.startsWith('http')) $('pImage').src = img;
-    $('pFooter').textContent = $('eFooter').value + ($('eTime').checked ? ($('eFooter').value ? ' • ' : '') + 'Today' : '');
-  }
+function ago(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return new Date(ts).toLocaleDateString();
+}
 
-  document.querySelectorAll('input, textarea').forEach((el) => el.addEventListener('input', preview));
-  $('useEmbed').addEventListener('change', preview); $('eTime').addEventListener('change', preview);
-  $('eColor').addEventListener('input', () => { $('eColorHex').value = $('eColor').value; preview(); });
-  $('eColorHex').addEventListener('input', () => {
-    if (/^#[0-9a-f]{6}$/i.test($('eColorHex').value)) { $('eColor').value = $('eColorHex').value; preview(); }
+/* Discord-flavoured markdown (preview only) */
+function md(text) {
+  let h = esc(text);
+  h = h.replace(/```(?:\w+\n)?([\s\S]*?)```/g, (m, c) => '<pre>' + c + '</pre>');
+  h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/__(.+?)__/g, '<u>$1</u>')
+       .replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/~~(.+?)~~/g, '<s>$1</s>');
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  h = h.replace(/&lt;@&amp;(\d+)&gt;/g, (m, id) => {
+    const r = info?.roles.find((r) => r.id === id);
+    const c = r && r.color !== '#000000' ? r.color : '#c9cdfb';
+    return `<span class="mention" style="--c:${c}">@${r ? esc(r.name) : 'unknown-role'}</span>`;
   });
-  $('channel').addEventListener('change', () => localStorage.setItem('lastChannel', $('channel').value));
+  h = h.replace(/&lt;#(\d+)&gt;/g, (m, id) => {
+    const c = info?.channels.find((c) => c.id === id);
+    return `<span class="mention">#${c ? esc(c.name) : 'unknown'}</span>`;
+  });
+  h = h.replace(/@(everyone|here)/g, '<span class="mention">@$1</span>');
+  return h;
+}
 
-  $('loginBtn').onclick = () => { password = $('pw').value; load(); };
-  $('pw').addEventListener('keydown', (e) => e.key === 'Enter' && $('loginBtn').click());
+/* ---------- API ---------- */
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: { 'Content-Type': 'application/json', 'x-panel-password': password },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
 
-  $('sendBtn').onclick = async () => {
-    const btn = $('sendBtn'); btn.disabled = true;
-    try {
-      const body = { channelId: $('channel').value, content: $('content').value };
-      if ($('useEmbed').checked) {
-        body.embed = {
-          title: $('eTitle').value, description: $('eDesc').value, color: $('eColor').value,
-          image: $('eImage').value.trim(), footer: $('eFooter').value, timestamp: $('eTime').checked,
-        };
+async function load() {
+  try {
+    info = await api('/api/info');
+    try { sessionStorage.setItem('pw', password); } catch {}
+    $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+
+    $('#guildName').textContent = info.guild.name;
+    $('#guildSub').textContent = `${info.guild.members.toLocaleString()} members · ${info.channels.length} channels`;
+    if (info.guild.icon) $('#guildIcon').src = info.guild.icon; else $('#guildIcon').classList.add('hidden');
+    $('#botAvatar').src = $('#pAvatar').src = info.bot.avatar;
+    $('#pName').textContent = info.bot.name;
+    $('#botStatus').textContent = `${info.bot.name} · ${info.bot.ping} ms`;
+
+    // Channel selects
+    const sel = $('#channel'); sel.innerHTML = '<option value="">Choose a channel…</option>';
+    const chIns = $('#channelInsert'); chIns.innerHTML = '<option value=""># Link a channel…</option>';
+    const groups = {};
+    for (const c of info.channels) {
+      if (!groups[c.category]) {
+        groups[c.category] = document.createElement('optgroup');
+        groups[c.category].label = c.category; sel.appendChild(groups[c.category]);
       }
-      await api('/api/send', body);
-      toast('Message sent! ✅');
-      $('content').value = ''; preview();
-    } catch (e) {
-      toast(e.message, 'err');
-      if (e.status === 401) location.reload();
-    } finally { btn.disabled = false; }
-  };
+      groups[c.category].appendChild(new Option((c.announcement ? '📢 ' : '# ') + c.name, c.id));
+      chIns.appendChild(new Option('#' + c.name, c.id));
+    }
+    const last = store.get('lastChannel');
+    if (last && info.channels.some((c) => c.id === last)) sel.value = last;
 
-  preview();
-  if (password) load();
+    const roleIns = $('#roleInsert'); roleIns.innerHTML = '<option value="">@ Mention a role…</option>';
+    for (const r of info.roles) roleIns.appendChild(new Option('@' + r.name, r.id));
+
+    renderHistory(info.history);
+    render();
+  } catch (e) {
+    try { sessionStorage.removeItem('pw'); } catch {}
+    $('#login').classList.remove('hidden'); $('#app').classList.add('hidden');
+    if (password) toast(esc(e.message), 'err');
+  }
+}
+
+/* ---------- render ---------- */
+function renderHistory(list) {
+  $('#history').innerHTML = list?.length
+    ? list.map((h) => `<a href="${esc(h.url)}" target="_blank" rel="noopener"><span class="ch">#${esc(h.channel)}</span><span class="pv">${esc(h.preview)}</span><span class="when">${ago(h.at)}</span></a>`).join('')
+    : '<div class="empty">Nothing sent yet.</div>';
+}
+
+function renderLists() {
+  $('#fieldList').innerHTML = state.embed.fields.map((f, n) => `
+    <div class="list-item">
+      <div class="head">Field ${n + 1}
+        <label class="switch" style="margin:0 0 0 auto;text-transform:none;letter-spacing:0;font-size:12px"><input type="checkbox" data-field="${n}" data-key="inline" ${f.inline ? 'checked' : ''}/><span class="track"></span>Inline</label>
+        <button class="x" data-del-field="${n}" title="Remove">✕</button></div>
+      <input data-field="${n}" data-key="name" maxlength="256" placeholder="Name" value="${esc(f.name)}" />
+      <textarea data-field="${n}" data-key="value" maxlength="1024" rows="2" placeholder="Value">${esc(f.value)}</textarea>
+    </div>`).join('') || '<div class="empty">No fields.</div>';
+  $('#addField').classList.toggle('hidden', state.embed.fields.length >= 25);
+
+  $('#buttonList').innerHTML = state.buttons.map((b, n) => `
+    <div class="list-item">
+      <div class="head">Button ${n + 1}<button class="x" data-del-button="${n}" title="Remove">✕</button></div>
+      <div class="row2">
+        <input data-button="${n}" data-key="label" maxlength="80" placeholder="Label (e.g. 🎮 Play now)" value="${esc(b.label)}" />
+        <input data-button="${n}" data-key="url" placeholder="https://www.roblox.com/games/..." value="${esc(b.url)}" />
+      </div>
+    </div>`).join('') || '<div class="empty">No buttons. Link buttons open a website (like your Roblox game).</div>';
+  $('#addButton').classList.toggle('hidden', state.buttons.length >= 5);
+
+  $('#swatches').innerHTML = COLORS.map((c) => `<button class="swatch ${c === state.embed.color ? 'on' : ''}" style="background:${c}" data-color="${c}" title="${c}"></button>`).join('') +
+    `<input type="color" id="colorPick" value="${esc(state.embed.color)}" /><input class="hex" id="colorHex" value="${esc(state.embed.color)}" />`;
+}
+
+function embedHtml(e) {
+  const fields = e.fields.filter((f) => f.name.trim() && f.value.trim());
+  const has = e.author || e.title || e.description || fields.length || isUrl(e.image);
+  if (!has) return '<div class="embed" style="border-left-color:' + esc(e.color) + '"><div class="e-desc" style="color:#949ba4">Empty embed — add a title or description.</div></div>';
+  let h = `<div class="embed" style="border-left-color:${esc(e.color)}">`;
+  if (isUrl(e.thumbnail)) h += `<img class="thumb" src="${esc(e.thumbnail)}" alt="" />`;
+  if (e.author) h += `<div class="e-author">${isUrl(e.authorIcon) ? `<img src="${esc(e.authorIcon)}" alt="" />` : ''}${esc(e.author)}</div>`;
+  if (e.title) h += `<div class="e-title md">${isUrl(e.url) ? `<a href="${esc(e.url)}" target="_blank" rel="noopener">${md(e.title)}</a>` : md(e.title)}</div>`;
+  if (e.description) h += `<div class="e-desc md">${md(e.description)}</div>`;
+  if (fields.length) h += '<div class="e-fields">' + fields.map((f) => `<div class="e-field ${f.inline ? '' : 'full'}"><div class="fn md">${md(f.name)}</div><div class="fv md">${md(f.value)}</div></div>`).join('') + '</div>';
+  if (isUrl(e.image)) h += `<img class="e-image" src="${esc(e.image)}" alt="" />`;
+  if (e.footer || e.timestamp) h += `<div class="e-footer">${esc(e.footer)}${e.footer && e.timestamp ? ' • ' : ''}${e.timestamp ? 'Today at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>`;
+  return h + '</div>';
+}
+
+function render() {
+  $('#pContent').innerHTML = md(state.content);
+  $('#pEmbed').innerHTML = state.useEmbed ? embedHtml(state.embed) : '';
+  $('#pButtons').innerHTML = state.buttons.filter((b) => b.label.trim()).map((b) => `<span class="dc-btn">${esc(b.label)} <span style="opacity:.7">↗</span></span>`).join('');
+  $('#embedFields').classList.toggle('hidden', !state.useEmbed);
+  $('#embedBadge').classList.toggle('hidden', !state.useEmbed);
+  $('#btnBadge').textContent = state.buttons.length; $('#btnBadge').classList.toggle('hidden', !state.buttons.length);
+  $('#contentCount').textContent = `${state.content.length} / 2000`;
+  $('#descCount').textContent = `${state.embed.description.length} / 4096`;
+  const ch = info?.channels.find((c) => c.id === $('#channel').value);
+  $('#previewChannel').textContent = ch ? '#' + ch.name : '';
+  store.set('draft', state);
+}
+
+function syncInputs() {
+  $$('[data-bind]').forEach((el) => {
+    const v = getPath(state, el.dataset.bind);
+    if (el.type === 'checkbox') el.checked = Boolean(v); else el.value = v ?? '';
+  });
+  renderLists(); render();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('input', (ev) => {
+  const el = ev.target;
+  if (el.dataset.bind) setPath(state, el.dataset.bind, el.type === 'checkbox' ? el.checked : el.value);
+  else if (el.dataset.field) state.embed.fields[+el.dataset.field][el.dataset.key] = el.type === 'checkbox' ? el.checked : el.value;
+  else if (el.dataset.button) state.buttons[+el.dataset.button][el.dataset.key] = el.value;
+  else if (el.id === 'colorPick') { state.embed.color = el.value; $('#colorHex').value = el.value; }
+  else if (el.id === 'colorHex') { if (!/^#[0-9a-f]{6}$/i.test(el.value)) return; state.embed.color = el.value; $('#colorPick').value = el.value; }
+  else return;
+  render();
+});
+document.addEventListener('change', (ev) => {
+  if (ev.target.dataset.bind || ev.target.dataset.field) ev.target.dispatchEvent(new Event('input', { bubbles: true }));
+  if (ev.target.id === 'colorPick' || ev.target.id === 'colorHex') renderLists();
+});
+
+document.addEventListener('click', (ev) => {
+  const t = ev.target.closest('button');
+  if (!t) return;
+  if (t.dataset.tab) {
+    $$('.tab').forEach((b) => b.classList.toggle('active', b === t));
+    $$('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
+  } else if (t.dataset.color) { state.embed.color = t.dataset.color; renderLists(); render(); }
+  else if (t.dataset.delField) { state.embed.fields.splice(+t.dataset.delField, 1); renderLists(); render(); }
+  else if (t.dataset.delButton) { state.buttons.splice(+t.dataset.delButton, 1); renderLists(); render(); }
+  else if (t.dataset.insert) insertText(t.dataset.insert);
+});
+
+function insertText(text) {
+  const ta = $('#content');
+  const s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? ta.value.length;
+  const pad = s > 0 && !/\s$/.test(ta.value.slice(0, s)) ? ' ' : '';
+  ta.value = ta.value.slice(0, s) + pad + text + ' ' + ta.value.slice(e);
+  state.content = ta.value; ta.focus();
+  ta.selectionStart = ta.selectionEnd = s + pad.length + text.length + 1;
+  render();
+}
+
+$('#roleInsert').onchange = (e) => { if (e.target.value) insertText(`<@&${e.target.value}>`); e.target.value = ''; };
+$('#channelInsert').onchange = (e) => { if (e.target.value) insertText(`<#${e.target.value}>`); e.target.value = ''; };
+$('#channel').onchange = () => { store.set('lastChannel', $('#channel').value); render(); };
+$('#addField').onclick = () => { state.embed.fields.push({ name: '', value: '', inline: true }); renderLists(); render(); };
+$('#addButton').onclick = () => { state.buttons.push({ label: '', url: '' }); renderLists(); render(); };
+$('#resetBtn').onclick = () => { if (confirm('Clear the whole message?')) { state = blank(); syncInputs(); } };
+$('#logoutBtn').onclick = () => { try { sessionStorage.removeItem('pw'); } catch {} location.reload(); };
+$('#loginBtn').onclick = () => { password = $('#pw').value; load(); };
+$('#pw').addEventListener('keydown', (e) => e.key === 'Enter' && $('#loginBtn').click());
+document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !$('#app').classList.contains('hidden')) send(); });
+$('#sendBtn').onclick = send;
+
+async function send() {
+  const channelId = $('#channel').value;
+  if (!channelId) return toast('Choose a channel first', 'err');
+  const btn = $('#sendBtn'); btn.disabled = true;
+  try {
+    const body = { channelId, content: state.content, buttons: state.buttons };
+    if (state.useEmbed) body.embed = state.embed;
+    const res = await api('/api/send', body);
+    toast(`Message sent! ✅ <a href="${esc(res.url)}" target="_blank" rel="noopener">Open</a>`);
+    renderHistory(res.history);
+  } catch (e) {
+    toast(esc(e.message), 'err');
+    if (e.status === 401) setTimeout(() => location.reload(), 1200);
+  } finally { btn.disabled = false; }
+}
+
+syncInputs();
+if (password) load();
 </script>
 </body>
 </html>

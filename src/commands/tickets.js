@@ -5,10 +5,49 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  StringSelectMenuBuilder,
   ChannelType,
+  AttachmentBuilder,
 } = require('discord.js');
-const { errorEmbed } = require('../utils');
+const { errorEmbed, isStaff, getTextChannel } = require('../utils');
 const config = require('../config');
+
+const TYPES = {
+  bug: { label: 'Bug report', emoji: '🐛', description: 'Something is broken in one of our games' },
+  report: { label: 'Player report', emoji: '🚨', description: 'Report a cheater or rule breaker' },
+  partner: { label: 'Partnership', emoji: '🤝', description: 'Collabs, partnerships, business' },
+  other: { label: 'Other', emoji: '❓', description: 'Any other question' },
+};
+
+// The channel topic stores the ticket owner and type: "ticket:<userId>:<type>"
+const ticketInfo = (channel) => {
+  const [tag, ownerId, type] = (channel.topic ?? '').split(':');
+  return tag === 'ticket' ? { ownerId, type } : null;
+};
+
+function ticketButtons(claimedBy) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('ticket_claim')
+      .setLabel(claimedBy ? `Claimed by ${claimedBy}` : 'Claim')
+      .setEmoji('🙋')
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(Boolean(claimedBy)),
+    new ButtonBuilder().setCustomId('ticket_close').setLabel('Close').setEmoji('🔒').setStyle(ButtonStyle.Danger),
+  );
+}
+
+async function buildTranscript(channel) {
+  const messages = await channel.messages.fetch({ limit: 100 });
+  const lines = [...messages.values()].reverse().map((m) => {
+    const extra = [
+      m.embeds.length ? '[embed]' : '',
+      ...m.attachments.map((a) => a.url),
+    ].filter(Boolean);
+    return `[${m.createdAt.toISOString().slice(0, 16).replace('T', ' ')}] ${m.author.tag}: ${m.content} ${extra.join(' ')}`.trim();
+  });
+  return new AttachmentBuilder(Buffer.from(lines.join('\n'), 'utf8'), { name: `${channel.name}.txt` });
+}
 
 const commands = [
   {
@@ -19,72 +58,129 @@ const commands = [
     async execute(i) {
       const embed = new EmbedBuilder()
         .setColor(config.color)
-        .setTitle('🎫 Fivefold Studio Support')
+        .setAuthor({ name: i.guild.name, iconURL: i.guild.iconURL() ?? undefined })
+        .setTitle('🎫 Support Center')
         .setDescription(
-          'Need help? Click the button below to open a private ticket with our staff.\n\n' +
-            '• 🐛 Bug reports\n• 🚨 Player reports\n• 🤝 Partnerships\n• ❓ Other questions',
+          'Need help from the team? Pick a category below and a **private ticket** will be created for you.\n\n' +
+            Object.values(TYPES)
+              .map((t) => `${t.emoji} **${t.label}** — ${t.description}`)
+              .join('\n'),
+        )
+        .setFooter({ text: 'Please do not open tickets for no reason.' });
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId('ticket_type')
+        .setPlaceholder('📩 Choose a category to open a ticket')
+        .addOptions(
+          Object.entries(TYPES).map(([value, t]) => ({ value, label: t.label, emoji: t.emoji, description: t.description })),
         );
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('ticket_open').setLabel('Open a ticket').setEmoji('🎫').setStyle(ButtonStyle.Primary),
-      );
-      await i.channel.send({ embeds: [embed], components: [row] });
+      await i.channel.send({ embeds: [embed], components: [new ActionRowBuilder().addComponents(menu)] });
       await i.reply({ content: 'Ticket panel posted.', ephemeral: true });
     },
   },
 ];
 
-// Button handlers, keyed by customId
-const buttons = {
-  async ticket_open(i) {
-    // One open ticket per user: we store the owner id in the channel topic
-    const existing = i.guild.channels.cache.find((c) => c.topic === `ticket:${i.user.id}`);
+const components = {
+  async ticket_type(i) {
+    const type = TYPES[i.values[0]] ? i.values[0] : 'other';
+    const existing = i.guild.channels.cache.find((c) => ticketInfo(c)?.ownerId === i.user.id);
     if (existing) {
       return i.reply({ embeds: [errorEmbed(`You already have an open ticket: ${existing}`)], ephemeral: true });
     }
+    await i.deferReply({ ephemeral: true });
 
     const overwrites = [
       { id: i.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
       {
         id: i.user.id,
-        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles],
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.AttachFiles,
+          PermissionFlagsBits.ReadMessageHistory,
+        ],
       },
-      { id: i.client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels] },
+      {
+        id: i.client.user.id,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.SendMessages],
+      },
     ];
     if (config.staffRoleId) {
       overwrites.push({
         id: config.staffRoleId,
-        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
       });
     }
 
+    const t = TYPES[type];
     const channel = await i.guild.channels.create({
-      name: `ticket-${i.user.username}`.toLowerCase().slice(0, 90),
+      name: `${type}-${i.user.username}`.toLowerCase().slice(0, 90),
       type: ChannelType.GuildText,
       parent: config.ticketCategoryId || null,
-      topic: `ticket:${i.user.id}`,
+      topic: `ticket:${i.user.id}:${type}`,
       permissionOverwrites: overwrites,
     });
 
     const embed = new EmbedBuilder()
       .setColor(config.color)
-      .setTitle('🎫 Ticket opened')
-      .setDescription(`Hi ${i.user}! Describe your issue and a staff member will answer soon.`);
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('ticket_close').setLabel('Close ticket').setEmoji('🔒').setStyle(ButtonStyle.Danger),
-    );
+      .setTitle(`${t.emoji} ${t.label}`)
+      .setDescription(
+        `Hi ${i.user}, thanks for reaching out!\n\n` +
+          'Please describe your request with as much detail as possible ' +
+          '(screenshots, Roblox username, game name...). A staff member will answer soon.',
+      )
+      .setTimestamp();
     await channel.send({
       content: `${i.user}${config.staffRoleId ? ` <@&${config.staffRoleId}>` : ''}`,
       embeds: [embed],
-      components: [row],
+      components: [ticketButtons()],
     });
-    await i.reply({ content: `Your ticket has been created: ${channel}`, ephemeral: true });
+    await i.editReply(`✅ Your ticket has been created: ${channel}`);
+  },
+
+  async ticket_claim(i) {
+    if (!isStaff(i.member)) return i.reply({ embeds: [errorEmbed('Only staff can claim tickets.')], ephemeral: true });
+    await i.update({ components: [ticketButtons(i.user.username)] });
+    await i.channel.send(`🙋 ${i.user} will handle this ticket.`);
   },
 
   async ticket_close(i) {
-    if (!i.channel.topic?.startsWith('ticket:')) return;
-    await i.reply('🔒 This ticket will be deleted in 5 seconds...');
+    const info = ticketInfo(i.channel);
+    if (!info) return;
+    if (i.user.id !== info.ownerId && !isStaff(i.member)) {
+      return i.reply({ embeds: [errorEmbed('You cannot close this ticket.')], ephemeral: true });
+    }
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId('ticket_close_confirm').setLabel('Yes, close it').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId('ticket_close_cancel').setLabel('Cancel').setStyle(ButtonStyle.Secondary),
+    );
+    await i.reply({ content: 'Are you sure you want to close this ticket?', components: [row], ephemeral: true });
+  },
+
+  async ticket_close_cancel(i) {
+    await i.update({ content: 'Cancelled.', components: [] });
+  },
+
+  async ticket_close_confirm(i) {
+    const info = ticketInfo(i.channel);
+    if (!info) return;
+    await i.update({ content: '🔒 Closing...', components: [] });
+    await i.channel.send(`🔒 Ticket closed by ${i.user}. This channel will be deleted in 5 seconds.`);
+
+    const log = await getTextChannel(i.guild, config.modLogChannelId);
+    if (log) {
+      const embed = new EmbedBuilder()
+        .setColor(0x8a8aa0)
+        .setTitle('🎫 Ticket closed')
+        .addFields(
+          { name: 'Ticket', value: i.channel.name, inline: true },
+          { name: 'Opened by', value: `<@${info.ownerId}>`, inline: true },
+          { name: 'Closed by', value: `${i.user}`, inline: true },
+        )
+        .setTimestamp();
+      await log.send({ embeds: [embed], files: [await buildTranscript(i.channel)] }).catch(console.error);
+    }
     setTimeout(() => i.channel.delete().catch(console.error), 5000);
   },
 };
 
-module.exports = { commands, buttons };
+module.exports = { commands, components };

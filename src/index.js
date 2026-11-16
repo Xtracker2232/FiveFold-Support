@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, Events, EmbedBuilder, ActivityType } = require('discord.js');
 const config = require('./config');
-const { commands, buttons } = require('./commands');
-const { errorEmbed } = require('./utils');
+const { commands, components } = require('./commands');
+const { errorEmbed, getTextChannel } = require('./utils');
 const startPanel = require('./panel/server');
 
 const missing = ['DISCORD_TOKEN', 'GUILD_ID'].filter((k) => !process.env[k]);
@@ -16,22 +16,30 @@ const client = new Client({
 
 const commandMap = new Map(commands.map((c) => [c.data.name, c]));
 
+// Register slash commands on the configured server
+async function registerCommands(guild) {
+  try {
+    const list = await guild.commands.set(commands.map((c) => c.data.toJSON()));
+    console.log(`✅ Registered ${list.size} slash commands on "${guild.name}"`);
+  } catch (e) {
+    console.error('❌ Command registration failed:', e.message);
+  }
+}
+
 client.once(Events.ClientReady, async (c) => {
   console.log(`🤖 Logged in as ${c.user.tag}`);
   c.user.setActivity('Fivefold Studio games', { type: ActivityType.Playing });
 
-  // Register slash commands on the server at every start (no need to run `npm run deploy`)
   const guild = c.guilds.cache.get(config.guildId);
-  if (guild) {
-    await guild.commands
-      .set(commands.map((cmd) => cmd.data.toJSON()))
-      .then((list) => console.log(`✅ Registered ${list.size} slash commands`))
-      .catch((e) => console.error('Command registration failed:', e.message));
-  } else {
-    console.error('❌ The bot is not in the server set in GUILD_ID');
-  }
+  if (guild) await registerCommands(guild);
+  else console.error('❌ The bot is not in the server set in GUILD_ID (invite it, commands will register automatically)');
 
   startPanel(client);
+});
+
+// Bot invited after it started: register right away, no restart needed
+client.on(Events.GuildCreate, (guild) => {
+  if (guild.id === config.guildId) registerCommands(guild);
 });
 
 // Welcome message + autorole
@@ -39,30 +47,31 @@ client.on(Events.GuildMemberAdd, async (member) => {
   if (config.autoroleId) {
     await member.roles.add(config.autoroleId).catch((e) => console.error('Autorole failed:', e.message));
   }
-  if (!config.welcomeChannelId) return;
-  const channel = await member.guild.channels.fetch(config.welcomeChannelId).catch(() => null);
-  if (!channel?.isTextBased()) return;
+  const channel = await getTextChannel(member.guild, config.welcomeChannelId);
+  if (!channel) return;
 
   const embed = new EmbedBuilder()
     .setColor(config.color)
-    .setTitle(`Welcome to ${member.guild.name}! 🎉`)
+    .setAuthor({ name: member.guild.name, iconURL: member.guild.iconURL() ?? undefined })
+    .setTitle(`Welcome, ${member.user.displayName}! 🎉`)
     .setDescription(
-      `Hey ${member}, glad to have you here!\n\n` +
-        'Check out the rules, grab your roles and come play our Roblox games with us. 🎮',
+      `Hey ${member}, welcome to **${member.guild.name}**!\n\n` +
+        '📜 Read the rules\n🎭 Grab your roles\n🎮 Come play our Roblox games with us\n\n' +
+        'Need help? Open a ticket anytime.',
     )
     .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-    .setFooter({ text: `You are member #${member.guild.memberCount}` })
+    .setFooter({ text: `Member #${member.guild.memberCount}` })
     .setTimestamp();
   await channel.send({ content: `${member}`, embeds: [embed] }).catch(console.error);
 });
 
-// Slash commands + buttons
+// Slash commands, buttons and select menus
 client.on(Events.InteractionCreate, async (i) => {
   try {
     if (i.isChatInputCommand()) {
       await commandMap.get(i.commandName)?.execute(i);
-    } else if (i.isButton()) {
-      await buttons[i.customId]?.(i);
+    } else if (i.isButton() || i.isStringSelectMenu()) {
+      await components[i.customId]?.(i);
     }
   } catch (err) {
     console.error(err);

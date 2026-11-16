@@ -111,14 +111,36 @@ const components = {
       });
     }
 
+    // Only use TICKET_CATEGORY_ID if it really is a category, otherwise create at the top
+    const category = config.ticketCategoryId
+      ? await i.guild.channels.fetch(config.ticketCategoryId).catch(() => null)
+      : null;
+    if (config.ticketCategoryId && category?.type !== ChannelType.GuildCategory) {
+      console.warn('⚠️ TICKET_CATEGORY_ID is not a category ID, creating ticket without category');
+    }
+
     const t = TYPES[type];
-    const channel = await i.guild.channels.create({
-      name: `${type}-${i.user.username}`.toLowerCase().slice(0, 90),
-      type: ChannelType.GuildText,
-      parent: config.ticketCategoryId || null,
-      topic: `ticket:${i.user.id}:${type}`,
-      permissionOverwrites: overwrites,
-    });
+    let channel;
+    try {
+      channel = await i.guild.channels.create({
+        name: `${type}-${i.user.username}`.toLowerCase().slice(0, 90),
+        type: ChannelType.GuildText,
+        parent: category?.type === ChannelType.GuildCategory ? category.id : null,
+        topic: `ticket:${i.user.id}:${type}`,
+        permissionOverwrites: overwrites,
+      });
+    } catch (err) {
+      console.error('Ticket creation failed:', err);
+      return i.editReply({
+        embeds: [
+          errorEmbed(
+            `Could not create your ticket: \`${err.message}\`\n` +
+              'Staff: make sure the bot has **Administrator** (or Manage Channels + Manage Roles) ' +
+              'and that `STAFF_ROLE_ID` / `TICKET_CATEGORY_ID` are correct.',
+          ),
+        ],
+      });
+    }
 
     const embed = new EmbedBuilder()
       .setColor(config.color)

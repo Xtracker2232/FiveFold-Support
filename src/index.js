@@ -75,7 +75,7 @@ client.on(Events.InteractionCreate, async (i) => {
     }
   } catch (err) {
     console.error(err);
-    const payload = { embeds: [errorEmbed('Something went wrong.')], ephemeral: true };
+    const payload = { embeds: [errorEmbed(`Something went wrong: \`${String(err.message).slice(0, 300)}\``)], ephemeral: true };
     if (i.replied || i.deferred) await i.followUp(payload).catch(() => {});
     else await i.reply(payload).catch(() => {});
   }
